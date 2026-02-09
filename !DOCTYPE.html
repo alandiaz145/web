@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ALLEN KS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ffffff;
+      color: #111111;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+      position: relative;
+    }
+    .header {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 1rem 0;
+      z-index: 10;
+      border-bottom: 1px solid #eee;
+    }
+    h1 {
+      font-size: 3rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .page {
+      display: none;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem 0;
+    }
+    .page.active {
+      display: block;
+    }
+    .subtitle {
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin: 1.5rem 0 1rem;
+      color: #222;
+    }
+    .cover-section {
+      margin: 1rem auto 2rem;
+      max-width: 320px;
+    }
+    .cover-title {
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    .cover-art {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      transition: transform 0.3s;
+    }
+    .cover-art:hover { transform: scale(1.03); }
+    .cover-art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .payment-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1.5rem 0 0.8rem;
+    }
+    .pay-btn, .btn {
+      background: #000;
+      color: white;
+      font-size: 1.1rem;
+      font-weight: bold;
+      padding: 0.9rem 1.8rem;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: all 0.3s;
+      min-width: 140px;
+    }
+    .pay-btn:hover, .btn:hover {
+      background: #222;
+      transform: translateY(-3px);
+    }
+    .payment-info {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
+      height: 0;
+      overflow: hidden;
+      max-width: 100%;
+      margin: 1.5rem auto;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .social {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+    }
+    .social a {
+      font-size: 2.2rem;
+      color: #111;
+      transition: color 0.3s;
+    }
+    .social a:hover { color: #555; }
+
+    /* Flechas de navegación */
+    .nav-arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 4rem;
+      color: rgba(0,0,0,0.4);
+      background: rgba(255,255,255,0.7);
+      border: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 100;
+    }
+    .nav-arrow:hover {
+      background: rgba(0,0,0,0.15);
+      color: white;
+    }
+    .left-arrow { left: 20px; }
+    .right-arrow { right: 20px; }
+
+    @media (max-width: 600px) {
+      .nav-arrow { font-size: 3rem; width: 50px; height: 50px; }
+      h1 { font-size: 2.5rem; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+  <div class="header">
+    <h1>ALLEN KS</h1>
+  </div>
+
+  <!-- Página 1: Sample Pack -->
+  <div id="page1" class="page active">
+    <p class="subtitle">Tearout SamplePack Vol.1</p>
+
+    <div class="cover-section">
+      <div class="cover-title">Tearout SamplePack Vol.1</div>
+      <div class="cover-art">
+        <img src="https://files.catbox.moe/0q3z1k.jpg" alt="Tearout SamplePack Vol.1">
+      </div>
+
+      <div class="payment-buttons">
+        <a href="https://www.paypal.com/paypalme/TU-USUARIO" class="pay-btn">PayPal</a>
+        <a href="https://www.mercadopago.com.ar/TU-LINK" class="pay-btn">MercadoPago</a>
+      </div>
+
+      <p class="payment-info">
+        Aceptamos todas las tarjetas de crédito y débito • All cards accepted
+      </p>
+    </div>
+
+    <div class="links">
+      <a href="https://tu-link-descarga-o-demo.com" class="btn">Ver Demo / Previsualizar Pack</a>
+      <a href="https://tu-link-contacto.com" class="btn">Más Info / Consultar</a>
+    </div>
+
+    <div class="social">
+      <a href="https://instagram.com/TU-INSTA" target="_blank"><i class="fab fa-instagram"></i></a>
+      <a href="https://youtube.com/@TU-CANAL" target="_blank"><i class="fab fa-youtube"></i></a>
+      <a href="https://soundcloud.com/TU-SOUNDCLOUD" target="_blank"><i class="fab fa-soundcloud"></i></a>
+      <a href="https://twitter.com/TU-TWITTER" target="_blank"><i class="fab fa-twitter"></i></a>
+    </div>
+  </div>
+
+  <!-- Página 2: Curso FL Studio -->
+  <div id="page2" class="page">
+    <p class="subtitle">CURSO FL STUDIO</p>
+
+    <div class="video-container">
+      <!-- Reemplaza con TU video de YouTube (solo el ID del video) -->
+      <iframe src="https://www.youtube.com/embed/TU_VIDEO_ID_AQUI?rel=0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen></iframe>
+    </div>
+
+    <div class="links">
+      <a href="https://www.youtube.com/@TU_CANAL" class="btn" target="_blank">Ir a mi Canal de YouTube</a>
+      <a href="https://wa.me/TU_NUMERO?text=Hola%20ALLEN%20KS%2C%20quiero%20info%20del%20curso" class="btn" target="_blank">Mandame un WhatsApp</a>
+    </div>
+  </div>
+
+  <!-- Página 3: Mixes Dubstep -->
+  <div id="page3" class="page">
+    <p class="subtitle">MIXES DUBSTEP</p>
+
+    <div class="video-container">
+      <!-- Reemplaza con TU mix de YouTube -->
+      <iframe src="https://www.youtube.com/embed/TU_OTRO_VIDEO_ID?rel=0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen></iframe>
+    </div>
+
+    <div class="links">
+      <a href="https://tu-link-contratar-evento.com" class="btn" target="_blank">Contratarme para un Evento</a>
+      <a href="https://tu-link-aprender-mezcla.com" class="btn" target="_blank">Aprender Mezcla / Clases</a>
+    </div>
+  </div>
+
+  <!-- Flechas de navegación -->
+  <button class="nav-arrow left-arrow" onclick="changePage(-1)"><i class="fas fa-arrow-left"></i></button>
+  <button class="nav-arrow right-arrow" onclick="changePage(1)"><i class="fas fa-arrow-right"></i></button>
+
+  <script>
+    let currentPage = 1;
+    const totalPages = 3;
+
+    function changePage(direction) {
+      document.getElementById(`page${currentPage}`).classList.remove('active');
+
+      currentPage += direction;
+      if (currentPage < 1) currentPage = totalPages;
+      if (currentPage > totalPages) currentPage = 1;
+
+      document.getElementById(`page${currentPage}`).classList.add('active');
+    }
+
+    // Opcional: abrir la página 1 por defecto
+    document.getElementById('page1').classList.add('active');
+  </script>
+
+</body>
+</html>
