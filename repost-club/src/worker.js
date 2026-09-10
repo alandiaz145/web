@@ -36,11 +36,17 @@ async function authUser(request, env) {
   const header = request.headers.get('authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
   if (!token) return null;
-  return env.DB.prepare(`
+
+  const user = await env.DB.prepare(`
     SELECT u.id,u.username,u.email,u.instagram_username,u.points,u.trust_score,u.role
     FROM sessions s JOIN users u ON u.id=s.user_id
     WHERE s.token=? AND s.expires_at>datetime('now')
   `).bind(token).first();
+
+  if (user) {
+    await env.DB.prepare(`UPDATE sessions SET created_at=CURRENT_TIMESTAMP WHERE token=?`).bind(token).run();
+  }
+  return user;
 }
 
 async function expireCampaigns(env) {
@@ -160,6 +166,40 @@ async function api(request, env, url) {
       WHERE user_id=? ORDER BY id DESC LIMIT 15
     `).bind(user.id).all();
     return json({ user, transactions });
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/community') {
+    const { results: online = [] } = await env.DB.prepare(`
+      SELECT u.id,u.username,u.instagram_username,MAX(s.created_at) last_seen
+      FROM sessions s JOIN users u ON u.id=s.user_id
+      WHERE s.expires_at>datetime('now') AND s.created_at>=datetime('now','-5 minutes')
+      GROUP BY u.id,u.username,u.instagram_username
+      ORDER BY CASE WHEN u.id=? THEN 0 ELSE 1 END,last_seen DESC
+      LIMIT 20
+    `).bind(user.id).all();
+
+    const { results: activity = [] } = await env.DB.prepare(`
+      SELECT type,actor,target,detail,created_at FROM (
+        SELECT 'post' type,u.username actor,NULL target,
+          COALESCE(p.title,'Nueva publicación') detail,p.created_at created_at
+        FROM posts p JOIN users u ON u.id=p.user_id
+
+        UNION ALL
+
+        SELECT 'action' type,actor.username actor,owner.username target,
+          a.action_type detail,x.created_at created_at
+        FROM participations x
+        JOIN users actor ON actor.id=x.user_id
+        JOIN post_actions a ON a.id=x.post_action_id
+        JOIN posts p ON p.id=a.post_id
+        JOIN users owner ON owner.id=p.user_id
+        WHERE x.status='verified'
+      )
+      ORDER BY created_at DESC
+      LIMIT 15
+    `).all();
+
+    return json({ online, activity });
   }
 
   if (request.method === 'POST' && url.pathname === '/api/logout') {
