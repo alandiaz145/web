@@ -16,7 +16,7 @@ async function hashPassword(password, salt = randomToken(16)) {
   const bits = await crypto.subtle.deriveBits({
     name: 'PBKDF2',
     salt: enc.encode(salt),
-    iterations: 120000,
+    iterations: 100000,
     hash: 'SHA-256'
   }, key, 256);
   const hash = [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
