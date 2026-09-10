@@ -46,6 +46,28 @@ function timeAgo(date){
   return `hace ${Math.floor(h/24)} d`;
 }
 
+function instagramEmbedUrl(raw){
+  try{
+    const u=new URL(String(raw||'').trim());
+    if(!/(^|\.)instagram\.com$/i.test(u.hostname)) return null;
+    const parts=u.pathname.split('/').filter(Boolean);
+    let type=parts[0];
+    if(type==='reels') type='reel';
+    if(!['p','reel','tv'].includes(type)||!parts[1]) return null;
+    return `https://www.instagram.com/${type}/${encodeURIComponent(parts[1])}/embed/`;
+  }catch{return null}
+}
+
+let previewTimer=null;
+function updatePostPreview(raw){
+  const box=$('#postPreview');
+  if(!box)return;
+  const embed=instagramEmbedUrl(raw);
+  if(!embed){box.classList.remove('show');box.innerHTML='';return;}
+  box.classList.add('show');
+  box.innerHTML=`<div class="preview-head"><div><span>VISTA PREVIA</span><strong>Publicación de Instagram</strong></div><a href="${escapeHtml(String(raw).trim())}" target="_blank" rel="noopener noreferrer">Abrir ↗</a></div><div class="preview-frame-wrap"><iframe class="instagram-frame" src="${embed}" loading="lazy" allowtransparency="true" frameborder="0" scrolling="no"></iframe></div><p class="preview-note">La vista previa funciona con publicaciones públicas. Si Instagram la bloquea por privacidad, el enlace igualmente se puede publicar.</p>`;
+}
+
 async function refreshMe(){
   const data=await api('/api/me'); me=data.user;
   $('#topUser').textContent=me.username;
@@ -58,8 +80,7 @@ async function refreshMe(){
 
 async function refreshFeed(){
   const {posts}=await api('/api/feed');
-  const visible=posts.filter(p=>p.user_id!==me?.id);
-  $('#feed').innerHTML=visible.length?visible.map(renderPost).join(''):'<div class="empty">No hay campañas disponibles ahora.</div>';
+  $('#feed').innerHTML=posts.length?posts.map(renderPost).join(''):'<div class="empty">No hay campañas activas ahora.</div>';
 }
 
 async function refreshCommunity(){
@@ -80,19 +101,20 @@ async function refreshCommunity(){
 }
 
 function renderPost(p){
+  const own=Number(p.user_id)===Number(me?.id);
   const actions=p.actions.map(a=>{
     const full=a.completed>=a.target;
     const auto=a.verification==='automatic';
-    const disabled=a.already_done||full;
+    const disabled=own||a.already_done||full;
     return `<button class="action-btn" data-action-id="${a.id}" data-url="${escapeHtml(p.url)}" data-auto="${auto}" ${disabled?'disabled':''}>
       <span>${actionLabel(a.type)}<br><small>${a.completed}/${a.target} · <span class="badge ${auto?'auto':'trust'}">${auto?'AUTO':'CONFIANZA'}</span></small></span>
-      <b>+${a.reward} PT</b>
+      <b>${own?'—':`+${a.reward} PT`}</b>
     </button>`;
   }).join('');
-  return `<article class="post-card">
-    <div class="post-top"><div class="author"><div class="avatar">${initials(p.username)}</div><div class="author-meta"><strong>${escapeHtml(p.username)}</strong><span>${p.instagram_username?'@'+escapeHtml(p.instagram_username):'Instagram'}</span></div></div><div class="timer">${timeLeft(p.expires_at)}</div></div>
+  return `<article class="post-card ${own?'own-post':''}">
+    <div class="post-top"><div class="author"><div class="avatar">${initials(p.username)}</div><div class="author-meta"><strong>${escapeHtml(p.username)} ${own?'<span class="own-badge">TU CAMPAÑA</span>':''}</strong><span>${p.instagram_username?'@'+escapeHtml(p.instagram_username):'Instagram'}</span></div></div><div class="timer">${timeLeft(p.expires_at)}</div></div>
     <h3 class="post-title">${escapeHtml(p.title||'Nueva publicación')}</h3>
-    <div class="post-link">${escapeHtml(p.url)}</div>
+    <a class="post-link" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.url)}</a>
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -144,6 +166,18 @@ function updateCost(){
 }
 $('#publishForm').addEventListener('input',updateCost);
 
+const publishUrl=$('#publishUrl');
+if(publishUrl){
+  publishUrl.addEventListener('input',()=>{
+    clearTimeout(previewTimer);
+    previewTimer=setTimeout(()=>updatePostPreview(publishUrl.value),350);
+  });
+  publishUrl.addEventListener('paste',()=>{
+    clearTimeout(previewTimer);
+    previewTimer=setTimeout(()=>updatePostPreview(publishUrl.value),80);
+  });
+}
+
 $('#publishForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const form=e.currentTarget;
@@ -155,14 +189,14 @@ $('#publishForm').addEventListener('submit',async e=>{
     toast(`Campaña publicada · ${data.cost} PT reservados`);
     form.reset();
     $$('input[type="number"]',form).forEach(i=>i.value=4);
-    updateCost();
-    await Promise.all([refreshMe(),refreshCommunity()]);
-    showView('activity');
+    updateCost(); updatePostPreview('');
+    await Promise.all([refreshMe(),refreshFeed(),refreshMyPosts(),refreshCommunity()]);
+    showView('feed');
   }catch(err){toast(err.message)}
 });
 
 $('#feed').addEventListener('click',async e=>{
-  const btn=e.target.closest('[data-action-id]'); if(!btn)return;
+  const btn=e.target.closest('[data-action-id]'); if(!btn||btn.disabled)return;
   window.open(btn.dataset.url,'_blank','noopener,noreferrer');
   if(btn.dataset.auto==='true'){
     toast('Abrí la publicación. Esta acción se acreditará cuando Instagram la verifique.');return;
