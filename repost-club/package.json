@@ -1,0 +1,16 @@
+{
+  "name": "repost-club",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:create": "wrangler d1 create repost-club-db",
+    "db:migrate:local": "wrangler d1 execute repost-club-db --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute repost-club-db --remote --file=./schema.sql",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
