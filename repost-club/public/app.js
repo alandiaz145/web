@@ -31,10 +31,19 @@ function escapeHtml(v=''){
 
 function initials(v='U'){return v.slice(0,2).toUpperCase()}
 function actionLabel(t){return {like:'❤️ Like',comment:'💬 Comentario',repost:'🔁 Repost',mention:'🏷️ Mención'}[t]||t}
+function actionText(t){return {like:'dio like',comment:'comentó',repost:'reposteó',mention:'mencionó'}[t]||'colaboró'}
 function timeLeft(date){
   const ms=new Date(date.endsWith('Z')?date:date+'Z')-Date.now();
   if(ms<=0)return 'Vencida';
   const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000); return `${h}h ${m}m`;
+}
+function timeAgo(date){
+  const ms=Date.now()-new Date(String(date).replace(' ','T')+'Z').getTime();
+  const m=Math.max(0,Math.floor(ms/60000));
+  if(m<1)return 'ahora';
+  if(m<60)return `hace ${m} min`;
+  const h=Math.floor(m/60); if(h<24)return `hace ${h} h`;
+  return `hace ${Math.floor(h/24)} d`;
 }
 
 async function refreshMe(){
@@ -51,6 +60,23 @@ async function refreshFeed(){
   const {posts}=await api('/api/feed');
   const visible=posts.filter(p=>p.user_id!==me?.id);
   $('#feed').innerHTML=visible.length?visible.map(renderPost).join(''):'<div class="empty">No hay campañas disponibles ahora.</div>';
+}
+
+async function refreshCommunity(){
+  const data=await api('/api/community');
+  const online=data.online||[];
+  const activity=data.activity||[];
+
+  $('#onlineCount').textContent=online.length;
+  $('#onlineUsers').innerHTML=online.length?online.map(u=>`<div class="online-user">
+    <div class="presence-avatar">${initials(u.username)}<span class="presence-dot"></span></div>
+    <div><strong>${escapeHtml(u.username)}${u.id===me?.id?' <span class="you">vos</span>':''}</strong><span>${u.instagram_username?'@'+escapeHtml(u.instagram_username):'En línea'}</span></div>
+  </div>`).join(''):'<div class="side-empty">Nadie conectado ahora.</div>';
+
+  $('#communityActivity').innerHTML=activity.length?activity.map(a=>{
+    if(a.type==='post') return `<div class="activity-item"><span class="activity-icon">＋</span><div><strong>${escapeHtml(a.actor)}</strong> agregó <b>${escapeHtml(a.detail)}</b><span>${timeAgo(a.created_at)}</span></div></div>`;
+    return `<div class="activity-item"><span class="activity-icon">${a.detail==='like'?'♥':a.detail==='repost'?'↻':a.detail==='mention'?'@':'●'}</span><div><strong>${escapeHtml(a.actor)}</strong> ${actionText(a.detail)} a <b>${escapeHtml(a.target||'otro usuario')}</b><span>${timeAgo(a.created_at)}</span></div></div>`;
+  }).join(''):'<div class="side-empty">Todavía no hay actividad.</div>';
 }
 
 function renderPost(p){
@@ -78,7 +104,7 @@ async function refreshMyPosts(){
 
 async function enterApp(){
   try{
-    setAuth(true); await refreshMe(); await Promise.all([refreshFeed(),refreshMyPosts()]);
+    setAuth(true); await refreshMe(); await Promise.all([refreshFeed(),refreshMyPosts(),refreshCommunity()]);
   }catch(e){
     token=''; localStorage.removeItem('rr_token'); setAuth(false);
   }
@@ -119,12 +145,19 @@ function updateCost(){
 $('#publishForm').addEventListener('input',updateCost);
 
 $('#publishForm').addEventListener('submit',async e=>{
-  e.preventDefault(); const f=new FormData(e.currentTarget); const actions=[];
-  $$('input[name="action"]:checked',e.currentTarget).forEach(ch=>actions.push({type:ch.value,target:Number(f.get(`${ch.value}_target`))}));
+  e.preventDefault();
+  const form=e.currentTarget;
+  const f=new FormData(form);
+  const actions=[];
+  $$('input[name="action"]:checked',form).forEach(ch=>actions.push({type:ch.value,target:Number(f.get(`${ch.value}_target`))}));
   try{
     const data=await api('/api/posts',{method:'POST',body:{url:f.get('url'),title:f.get('title'),platform:f.get('platform'),actions}});
-    toast(`Campaña publicada · ${data.cost} PT reservados`); e.currentTarget.reset();
-    $$('input[type="number"]',e.currentTarget).forEach(i=>i.value=4);updateCost();await refreshMe();showView('activity');
+    toast(`Campaña publicada · ${data.cost} PT reservados`);
+    form.reset();
+    $$('input[type="number"]',form).forEach(i=>i.value=4);
+    updateCost();
+    await Promise.all([refreshMe(),refreshCommunity()]);
+    showView('activity');
   }catch(err){toast(err.message)}
 });
 
@@ -136,10 +169,10 @@ $('#feed').addEventListener('click',async e=>{
   }
   const ok=confirm('Se abrió la publicación. Marcá Aceptar solo después de completar realmente la acción.');
   if(!ok)return;
-  try{const d=await api(`/api/actions/${btn.dataset.actionId}/complete`,{method:'POST'});toast(`Acción registrada · +${d.reward} PT`);await refreshMe();await refreshFeed()}catch(err){toast(err.message)}
+  try{const d=await api(`/api/actions/${btn.dataset.actionId}/complete`,{method:'POST'});toast(`Acción registrada · +${d.reward} PT`);await Promise.all([refreshMe(),refreshFeed(),refreshCommunity()])}catch(err){toast(err.message)}
 });
 
-$('#refreshBtn').addEventListener('click',()=>Promise.all([refreshMe(),refreshFeed()]).catch(e=>toast(e.message)));
+$('#refreshBtn').addEventListener('click',()=>Promise.all([refreshMe(),refreshFeed(),refreshCommunity()]).catch(e=>toast(e.message)));
 $('#logoutBtn').addEventListener('click',async()=>{
   try{await api('/api/logout',{method:'POST'})}catch{}
   token='';me=null;localStorage.removeItem('rr_token');setAuth(false);toast('Sesión cerrada');
@@ -147,4 +180,4 @@ $('#logoutBtn').addEventListener('click',async()=>{
 
 updateCost();
 if(token) enterApp(); else setAuth(false);
-setInterval(()=>{if(token) refreshFeed().catch(()=>{})},60000);
+setInterval(()=>{if(token) Promise.all([refreshFeed(),refreshCommunity()]).catch(()=>{})},30000);
