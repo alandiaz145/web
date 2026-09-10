@@ -46,7 +46,7 @@ function timeAgo(date){
   return `hace ${Math.floor(h/24)} d`;
 }
 
-function instagramEmbedUrl(raw){
+function instagramPermalink(raw){
   try{
     const u=new URL(String(raw||'').trim());
     if(!/(^|\.)instagram\.com$/i.test(u.hostname)) return null;
@@ -54,18 +54,53 @@ function instagramEmbedUrl(raw){
     let type=parts[0];
     if(type==='reels') type='reel';
     if(!['p','reel','tv'].includes(type)||!parts[1]) return null;
-    return `https://www.instagram.com/${type}/${encodeURIComponent(parts[1])}/embed/`;
+    return `https://www.instagram.com/${type}/${encodeURIComponent(parts[1])}/`;
   }catch{return null}
+}
+
+let instagramScriptPromise=null;
+function ensureInstagramEmbeds(){
+  if(window.instgrm?.Embeds){
+    setTimeout(()=>window.instgrm.Embeds.process(),0);
+    return Promise.resolve();
+  }
+  if(instagramScriptPromise)return instagramScriptPromise;
+  instagramScriptPromise=new Promise(resolve=>{
+    let script=document.getElementById('instagram-embed-script');
+    if(!script){
+      script=document.createElement('script');
+      script.id='instagram-embed-script';
+      script.async=true;
+      script.src='https://www.instagram.com/embed.js';
+      document.body.appendChild(script);
+    }
+    script.addEventListener('load',()=>{
+      try{window.instgrm?.Embeds?.process()}catch{}
+      resolve();
+    },{once:true});
+    setTimeout(resolve,5000);
+  });
+  return instagramScriptPromise;
+}
+
+function instagramEmbedMarkup(raw, compact=false){
+  const permalink=instagramPermalink(raw);
+  if(!permalink)return '';
+  return `<div class="instagram-media-shell ${compact?'compact':''}">
+    <blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(permalink)}" data-instgrm-version="14"></blockquote>
+    <div class="instagram-loading">Cargando publicación de Instagram…</div>
+  </div>`;
 }
 
 let previewTimer=null;
 function updatePostPreview(raw){
   const box=$('#postPreview');
   if(!box)return;
-  const embed=instagramEmbedUrl(raw);
-  if(!embed){box.classList.remove('show');box.innerHTML='';return;}
+  const permalink=instagramPermalink(raw);
+  if(!permalink){box.classList.remove('show');box.innerHTML='';return;}
   box.classList.add('show');
-  box.innerHTML=`<div class="preview-head"><div><span>VISTA PREVIA</span><strong>Publicación de Instagram</strong></div><a href="${escapeHtml(String(raw).trim())}" target="_blank" rel="noopener noreferrer">Abrir ↗</a></div><div class="preview-frame-wrap"><iframe class="instagram-frame" src="${embed}" loading="lazy" allowtransparency="true" frameborder="0" scrolling="no"></iframe></div><p class="preview-note">La vista previa funciona con publicaciones públicas. Si Instagram la bloquea por privacidad, el enlace igualmente se puede publicar.</p>`;
+  box.innerHTML=`<div class="preview-head"><div><span>VISTA PREVIA</span><strong>Así se verá la publicación</strong></div><a href="${escapeHtml(permalink)}" target="_blank" rel="noopener noreferrer">Abrir ↗</a></div>${instagramEmbedMarkup(permalink)}<p class="preview-note">Se muestra la imagen, carrusel o Reel directamente desde Instagram. Debe ser una publicación pública.</p>`;
+  ensureInstagramEmbeds();
 }
 
 async function refreshMe(){
@@ -81,6 +116,7 @@ async function refreshMe(){
 async function refreshFeed(){
   const {posts}=await api('/api/feed');
   $('#feed').innerHTML=posts.length?posts.map(renderPost).join(''):'<div class="empty">No hay campañas activas ahora.</div>';
+  if(posts.some(p=>instagramPermalink(p.url)))ensureInstagramEmbeds();
 }
 
 async function refreshCommunity(){
@@ -111,10 +147,12 @@ function renderPost(p){
       <b>${own?'—':`+${a.reward} PT`}</b>
     </button>`;
   }).join('');
+  const media=instagramEmbedMarkup(p.url,true);
   return `<article class="post-card ${own?'own-post':''}">
     <div class="post-top"><div class="author"><div class="avatar">${initials(p.username)}</div><div class="author-meta"><strong>${escapeHtml(p.username)} ${own?'<span class="own-badge">TU CAMPAÑA</span>':''}</strong><span>${p.instagram_username?'@'+escapeHtml(p.instagram_username):'Instagram'}</span></div></div><div class="timer">${timeLeft(p.expires_at)}</div></div>
     <h3 class="post-title">${escapeHtml(p.title||'Nueva publicación')}</h3>
-    <a class="post-link" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.url)}</a>
+    ${media}
+    <a class="post-link" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">Abrir publicación en Instagram ↗</a>
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -151,6 +189,7 @@ $('#registerForm').addEventListener('submit',async e=>{
 function showView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`${name}View`));
   $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  document.documentElement.dataset.view=name;
   if(name==='feed') refreshFeed().catch(e=>toast(e.message));
   if(name==='activity') refreshMyPosts().catch(e=>toast(e.message));
   if(name==='profile') refreshMe().catch(e=>toast(e.message));
@@ -174,7 +213,7 @@ if(publishUrl){
   });
   publishUrl.addEventListener('paste',()=>{
     clearTimeout(previewTimer);
-    previewTimer=setTimeout(()=>updatePostPreview(publishUrl.value),80);
+    previewTimer=setTimeout(()=>updatePostPreview(publishUrl.value),100);
   });
 }
 
@@ -213,5 +252,7 @@ $('#logoutBtn').addEventListener('click',async()=>{
 });
 
 updateCost();
+document.documentElement.dataset.view='feed';
 if(token) enterApp(); else setAuth(false);
-setInterval(()=>{if(token) Promise.all([refreshFeed(),refreshCommunity()]).catch(()=>{})},30000);
+setInterval(()=>{if(token) refreshCommunity().catch(()=>{})},30000);
+setInterval(()=>{if(token && document.documentElement.dataset.view==='feed') refreshFeed().catch(()=>{})},60000);
