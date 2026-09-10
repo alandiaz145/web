@@ -60,7 +60,8 @@
         <section id="publishView" class="view">
           <div class="section-head"><div><span class="eyebrow">NUEVA CAMPAÑA</span><h2>Publicá tu contenido</h2></div></div>
           <form id="publishForm" class="panel publish-form">
-            <label>Enlace de la publicación<input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required></label>
+            <label>Enlace de la publicación<input id="publishUrl" name="url" type="url" placeholder="https://www.instagram.com/reel/..." required></label>
+            <div id="postPreview" class="post-preview" aria-live="polite"></div>
             <label>Título opcional<input name="title" maxlength="120" placeholder="Nuevo reel / nuevo lanzamiento"></label>
             <label>Plataforma<select name="platform"><option value="instagram">Instagram</option></select></label>
             <div class="action-builder">
