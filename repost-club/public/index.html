@@ -49,46 +49,60 @@
       </div>
     </header>
 
-    <main class="content">
-      <section id="feedView" class="view active">
-        <div class="section-head"><div><span class="eyebrow">ACTIVIDAD DISPONIBLE</span><h2>Ayudá y ganá puntos</h2></div><button class="ghost" id="refreshBtn">Actualizar</button></div>
-        <div id="feed" class="feed"></div>
-      </section>
+    <div class="workspace">
+      <main class="content">
+        <section id="feedView" class="view active">
+          <div class="section-head"><div><span class="eyebrow">ACTIVIDAD DISPONIBLE</span><h2>Ayudá y ganá puntos</h2></div><button class="ghost" id="refreshBtn">Actualizar</button></div>
+          <div id="feed" class="feed"></div>
+        </section>
 
-      <section id="publishView" class="view">
-        <div class="section-head"><div><span class="eyebrow">NUEVA CAMPAÑA</span><h2>Publicá tu contenido</h2></div></div>
-        <form id="publishForm" class="panel publish-form">
-          <label>Enlace de la publicación<input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required></label>
-          <label>Título opcional<input name="title" maxlength="120" placeholder="Nuevo reel / nuevo lanzamiento"></label>
-          <label>Plataforma<select name="platform"><option value="instagram">Instagram</option></select></label>
-          <div class="action-builder">
-            <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="like"><span>❤️ Like <b>1 PT</b></span></label><input class="qty" name="like_target" type="number" min="1" max="20" value="4"></div>
-            <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="comment"><span>💬 Comentario <b>2 PT</b></span></label><input class="qty" name="comment_target" type="number" min="1" max="20" value="4"></div>
-            <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="repost"><span>🔁 Repost <b>3 PT</b></span></label><input class="qty" name="repost_target" type="number" min="1" max="20" value="4"></div>
-            <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="mention"><span>🏷️ Mención <b>3 PT</b></span></label><input class="qty" name="mention_target" type="number" min="1" max="20" value="4"></div>
+        <section id="publishView" class="view">
+          <div class="section-head"><div><span class="eyebrow">NUEVA CAMPAÑA</span><h2>Publicá tu contenido</h2></div></div>
+          <form id="publishForm" class="panel publish-form">
+            <label>Enlace de la publicación<input name="url" type="url" placeholder="https://www.instagram.com/reel/..." required></label>
+            <label>Título opcional<input name="title" maxlength="120" placeholder="Nuevo reel / nuevo lanzamiento"></label>
+            <label>Plataforma<select name="platform"><option value="instagram">Instagram</option></select></label>
+            <div class="action-builder">
+              <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="like"><span>❤️ Like <b>1 PT</b></span></label><input class="qty" name="like_target" type="number" min="1" max="20" value="4"></div>
+              <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="comment"><span>💬 Comentario <b>2 PT</b></span></label><input class="qty" name="comment_target" type="number" min="1" max="20" value="4"></div>
+              <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="repost"><span>🔁 Repost <b>3 PT</b></span></label><input class="qty" name="repost_target" type="number" min="1" max="20" value="4"></div>
+              <div class="builder-row"><label class="check"><input type="checkbox" name="action" value="mention"><span>🏷️ Mención <b>3 PT</b></span></label><input class="qty" name="mention_target" type="number" min="1" max="20" value="4"></div>
+            </div>
+            <div class="cost"><span>Costo máximo</span><strong><span id="costValue">0</span> PT</strong></div>
+            <p class="fine">Los puntos se reservan al publicar. Lo que no se use vuelve a tu saldo al vencer la campaña.</p>
+            <button class="primary" type="submit">PUBLICAR POR 24 HORAS</button>
+          </form>
+        </section>
+
+        <section id="activityView" class="view">
+          <div class="section-head"><div><span class="eyebrow">MIS PUBLICACIONES</span><h2>Actividad</h2></div></div>
+          <div id="myPosts" class="feed"></div>
+        </section>
+
+        <section id="profileView" class="view">
+          <div class="section-head"><div><span class="eyebrow">CUENTA</span><h2>Perfil y puntos</h2></div></div>
+          <div class="panel profile-card">
+            <div class="score"><span>Saldo actual</span><strong><span id="profilePoints">0</span> PT</strong></div>
+            <div class="score"><span>Confianza</span><strong><span id="trustScore">100</span>%</strong></div>
+            <button id="logoutBtn" class="danger">Cerrar sesión</button>
           </div>
-          <div class="cost"><span>Costo máximo</span><strong><span id="costValue">0</span> PT</strong></div>
-          <p class="fine">Los puntos se reservan al publicar. Lo que no se use vuelve a tu saldo al vencer la campaña.</p>
-          <button class="primary" type="submit">PUBLICAR POR 24 HORAS</button>
-        </form>
-      </section>
+          <h3 class="history-title">Últimos movimientos</h3>
+          <div id="transactions" class="transactions"></div>
+        </section>
+      </main>
 
-      <section id="activityView" class="view">
-        <div class="section-head"><div><span class="eyebrow">MIS PUBLICACIONES</span><h2>Actividad</h2></div></div>
-        <div id="myPosts" class="feed"></div>
-      </section>
+      <aside class="community-sidebar">
+        <section class="side-panel">
+          <div class="side-title"><h3>En línea</h3><span><b id="onlineCount">0</b> activos</span></div>
+          <div id="onlineUsers" class="online-list"><div class="side-empty">Cargando...</div></div>
+        </section>
 
-      <section id="profileView" class="view">
-        <div class="section-head"><div><span class="eyebrow">CUENTA</span><h2>Perfil y puntos</h2></div></div>
-        <div class="panel profile-card">
-          <div class="score"><span>Saldo actual</span><strong><span id="profilePoints">0</span> PT</strong></div>
-          <div class="score"><span>Confianza</span><strong><span id="trustScore">100</span>%</strong></div>
-          <button id="logoutBtn" class="danger">Cerrar sesión</button>
-        </div>
-        <h3 class="history-title">Últimos movimientos</h3>
-        <div id="transactions" class="transactions"></div>
-      </section>
-    </main>
+        <section class="side-panel activity-panel">
+          <div class="side-title"><h3>Actividad reciente</h3><span>Equipo</span></div>
+          <div id="communityActivity" class="activity-list"><div class="side-empty">Cargando...</div></div>
+        </section>
+      </aside>
+    </div>
 
     <nav class="bottom-nav">
       <button class="active" data-view="feed"><span>⌂</span>Inicio</button>
