@@ -1,6 +1,10 @@
 name = "repost-club"
-main = "src/worker.js"
+main = "src/index.js"
 compatibility_date = "2026-09-10"
+
+[vars]
+INSTAGRAM_APP_ID = "1632280991870398"
+INSTAGRAM_REDIRECT_URI = "https://repost-club.alandiaz145.workers.dev/api/instagram/callback"
 
 [assets]
 directory = "./public"
