@@ -90,7 +90,16 @@
   overflow:hidden;
   background:#fff;
 }
-.instagram-media-shell.compact{width:280px;max-width:100%;margin-top:8px}
+/* En el feed solo mostramos cabecera + media. Los controles propios de Instagram
+   quedan recortados porque Repost Club no puede usarlos para acreditar puntos. */
+.instagram-media-shell.compact{
+  width:280px;
+  max-width:100%;
+  height:405px;
+  min-height:405px;
+  margin-top:8px;
+  overflow:hidden;
+}
 .instagram-media-shell .instagram-media{margin:0!important;min-width:100%!important;width:100%!important;max-width:100%!important;border:0!important}
 .instagram-loading{position:absolute;inset:0;display:grid;place-items:center;color:#777;background:#f4f4f4;font-size:.78rem;z-index:0}
 .instagram-media-shell iframe,.instagram-media-shell .instagram-media-rendered{position:relative;z-index:1}
@@ -149,7 +158,8 @@ html[data-view="profile"] #profileView{animation:viewIn .18s ease both}
   .workspace{padding:26px 14px 105px}
   .workspace .content{width:100%}
   .community-sidebar{width:100%;grid-template-columns:1fr}
-  .instagram-media-shell{width:100%;min-height:380px}
+  .instagram-media-shell:not(.compact){width:100%;min-height:380px}
+  .instagram-media-shell.compact{width:280px;height:405px;min-height:405px}
   .bottom-nav{width:calc(100% - 20px);bottom:10px}
   .campaign-tools{align-items:flex-start;flex-direction:column}
   .campaign-tools small{text-align:left;max-width:none}
