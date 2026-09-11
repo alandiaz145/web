@@ -37,17 +37,6 @@
   scrollbar-color:#333 transparent;
   z-index:12;
 }
-/* Separador vertical tipo pared entre el feed y la columna derecha. */
-.community-sidebar:before{
-  content:"";
-  position:fixed;
-  left:calc(50% + (var(--rc-main) / 2));
-  top:72px;
-  bottom:0;
-  width:1px;
-  background:#1f1f24;
-  pointer-events:none;
-}
 .side-panel{
   background:#111115;
   border:1px solid #222229;
@@ -131,7 +120,6 @@ html[data-view="profile"] #profileView{animation:viewIn .18s ease both}
     margin:24px auto 0;
     grid-template-columns:1fr 1fr;
   }
-  .community-sidebar:before{display:none}
   .activity-panel{min-width:0}
 }
 @media(max-width:760px){
