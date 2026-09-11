@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0a0a0c">
   <title>Repost Club</title>
-  <link rel="stylesheet" href="/styles.css?v=20260910-2125">
-  <link rel="stylesheet" href="/community.css?v=20260910-2125">
+  <link rel="stylesheet" href="/styles.css?v=20260910-2345">
+  <link rel="stylesheet" href="/community.css?v=20260910-2345">
 </head>
 <body>
   <div id="toast" class="toast"></div>
@@ -88,6 +88,15 @@
             <div class="score"><span>Confianza</span><strong><span id="trustScore">100</span>%</strong></div>
             <button id="logoutBtn" class="danger">Cerrar sesión</button>
           </div>
+
+          <h3 class="history-title">Instagram</h3>
+          <div class="panel profile-card" id="instagramConnectionCard">
+            <div class="score"><span>Cuenta vinculada</span><strong id="instagramStatusText">Comprobando…</strong></div>
+            <p class="fine" id="instagramStatusMeta">Conectá tu cuenta profesional para poder verificar acciones.</p>
+            <button id="instagramConnectBtn" class="primary" type="button">CONECTAR INSTAGRAM</button>
+            <button id="instagramDisconnectBtn" class="danger hidden" type="button">Desconectar Instagram</button>
+          </div>
+
           <h3 class="history-title">Últimos movimientos</h3>
           <div id="transactions" class="transactions"></div>
         </section>
@@ -114,6 +123,7 @@
     </nav>
   </div>
 
-  <script src="/app.js?v=20260910-2125" defer></script>
+  <script src="/app.js?v=20260910-2345" defer></script>
+  <script src="/instagram-ui.js?v=20260910-2345" defer></script>
 </body>
 </html>
