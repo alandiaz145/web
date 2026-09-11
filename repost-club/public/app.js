@@ -4,18 +4,23 @@ let token = localStorage.getItem('rr_token') || '';
 let me = null;
 
 function toast(message){
-  const el=$('#toast'); el.textContent=message; el.classList.add('show');
-  clearTimeout(window.__toast); window.__toast=setTimeout(()=>el.classList.remove('show'),2600);
+  const el=$('#toast');
+  el.textContent=message;
+  el.classList.add('show');
+  clearTimeout(window.__toast);
+  window.__toast=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
 async function api(path, options={}){
   const headers={...(options.headers||{})};
   if(options.body && typeof options.body !== 'string'){
-    headers['content-type']='application/json'; options.body=JSON.stringify(options.body);
+    headers['content-type']='application/json';
+    options.body=JSON.stringify(options.body);
   }
   if(token) headers.authorization=`Bearer ${token}`;
   const res=await fetch(path,{...options,headers});
-  let data={}; try{data=await res.json()}catch{}
+  let data={};
+  try{data=await res.json()}catch{}
   if(!res.ok) throw new Error(data.error||'Error inesperado');
   return data;
 }
@@ -32,17 +37,21 @@ function escapeHtml(v=''){
 function initials(v='U'){return v.slice(0,2).toUpperCase()}
 function actionLabel(t){return {like:'❤️ Like',comment:'💬 Comentario',repost:'🔁 Repost',mention:'🏷️ Mención'}[t]||t}
 function actionText(t){return {like:'dio like',comment:'comentó',repost:'reposteó',mention:'mencionó'}[t]||'colaboró'}
+function statusLabel(s){return {active:'ACTIVA',completed:'COMPLETA',expired:'VENCIDA',cancelled:'CANCELADA'}[s]||String(s||'').toUpperCase()}
 function timeLeft(date){
   const ms=new Date(date.endsWith('Z')?date:date+'Z')-Date.now();
   if(ms<=0)return 'Vencida';
-  const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000); return `${h}h ${m}m`;
+  const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);
+  return `${h}h ${m}m`;
 }
 function timeAgo(date){
+  if(!date)return '';
   const ms=Date.now()-new Date(String(date).replace(' ','T')+'Z').getTime();
   const m=Math.max(0,Math.floor(ms/60000));
   if(m<1)return 'ahora';
   if(m<60)return `hace ${m} min`;
-  const h=Math.floor(m/60); if(h<24)return `hace ${h} h`;
+  const h=Math.floor(m/60);
+  if(h<24)return `hace ${h} h`;
   return `hace ${Math.floor(h/24)} d`;
 }
 
@@ -97,14 +106,19 @@ function updatePostPreview(raw){
   const box=$('#postPreview');
   if(!box)return;
   const permalink=instagramPermalink(raw);
-  if(!permalink){box.classList.remove('show');box.innerHTML='';return;}
+  if(!permalink){
+    box.classList.remove('show');
+    box.innerHTML='';
+    return;
+  }
   box.classList.add('show');
   box.innerHTML=`<div class="preview-head"><div><span>VISTA PREVIA</span><strong>Así se verá la publicación</strong></div><a href="${escapeHtml(permalink)}" target="_blank" rel="noopener noreferrer">Abrir ↗</a></div>${instagramEmbedMarkup(permalink)}<p class="preview-note">Se muestra la imagen, carrusel o Reel directamente desde Instagram. Debe ser una publicación pública.</p>`;
   ensureInstagramEmbeds();
 }
 
 async function refreshMe(){
-  const data=await api('/api/me'); me=data.user;
+  const data=await api('/api/me');
+  me=data.user;
   $('#topUser').textContent=me.username;
   $('#topIg').textContent=me.instagram_username?`@${me.instagram_username}`:'Instagram sin vincular';
   $('#topPoints').textContent=me.points;
@@ -136,37 +150,100 @@ async function refreshCommunity(){
   }).join(''):'<div class="side-empty">Todavía no hay actividad.</div>';
 }
 
+function renderActionButton(a,p,own){
+  const full=Number(a.completed)>=Number(a.target);
+  const auto=a.verification==='automatic';
+  const status=a.my_status;
+  let attrs='';
+  let right='';
+  let stateClass='';
+
+  if(own){
+    attrs='disabled';
+    right='—';
+  }else if(full){
+    attrs='disabled';
+    right='COMPLETO';
+    stateClass='is-done';
+  }else if(status==='verified'){
+    attrs='disabled';
+    right=`✓ +${a.reward} PT`;
+    stateClass='is-done';
+  }else if(status==='claimed' && auto){
+    attrs='disabled';
+    right='PENDIENTE';
+    stateClass='is-pending';
+  }else if(status==='claimed'){
+    attrs=`data-complete-action="${a.id}"`;
+    right=`YA LO HICE · +${a.reward}`;
+    stateClass='is-pending ready';
+  }else{
+    attrs=`data-start-action="${a.id}" data-url="${escapeHtml(p.url)}"`;
+    right=`HACER · +${a.reward}`;
+  }
+
+  return `<button class="action-btn ${stateClass}" ${attrs}>
+    <span>${actionLabel(a.type)}<br><small>${a.completed}/${a.target} · <span class="badge ${auto?'auto':'trust'}">${auto?'AUTO':'CONFIANZA'}</span></small></span>
+    <b>${right}</b>
+  </button>`;
+}
+
 function renderPost(p){
   const own=Number(p.user_id)===Number(me?.id);
-  const actions=p.actions.map(a=>{
-    const full=a.completed>=a.target;
-    const auto=a.verification==='automatic';
-    const disabled=own||a.already_done||full;
-    return `<button class="action-btn" data-action-id="${a.id}" data-url="${escapeHtml(p.url)}" data-auto="${auto}" ${disabled?'disabled':''}>
-      <span>${actionLabel(a.type)}<br><small>${a.completed}/${a.target} · <span class="badge ${auto?'auto':'trust'}">${auto?'AUTO':'CONFIANZA'}</span></small></span>
-      <b>${own?'—':`+${a.reward} PT`}</b>
-    </button>`;
-  }).join('');
+  const actions=p.actions.map(a=>renderActionButton(a,p,own)).join('');
   const media=instagramEmbedMarkup(p.url,true);
   return `<article class="post-card ${own?'own-post':''}">
     <div class="post-top"><div class="author"><div class="avatar">${initials(p.username)}</div><div class="author-meta"><strong>${escapeHtml(p.username)} ${own?'<span class="own-badge">TU CAMPAÑA</span>':''}</strong><span>${p.instagram_username?'@'+escapeHtml(p.instagram_username):'Instagram'}</span></div></div><div class="timer">${timeLeft(p.expires_at)}</div></div>
     <h3 class="post-title">${escapeHtml(p.title||'Nueva publicación')}</h3>
     ${media}
     <a class="post-link" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">Abrir publicación en Instagram ↗</a>
+    <div class="task-help">Usá los botones de abajo para que Repost Club pueda registrar tu colaboración.</div>
     <div class="actions">${actions}</div>
+  </article>`;
+}
+
+function participantMarkup(list=[]){
+  const visible=list.filter(x=>x.status!=='rejected');
+  if(!visible.length)return '<span class="participants-empty">Todavía nadie.</span>';
+  return visible.map(x=>`<span class="participant ${x.status==='verified'?'verified':'pending'}" title="${x.status==='verified'?'Acción registrada':'Pendiente de verificación'}">${x.status==='verified'?'✓':'⌛'} ${escapeHtml(x.username)}</span>`).join('');
+}
+
+function renderMyPost(p){
+  const actions=(p.actions||[]).map(a=>`<div class="campaign-action-detail">
+    <div class="campaign-action-head">
+      <div><strong>${actionLabel(a.type)}</strong><span>${a.verification==='automatic'?'Verificación automática':'Por confianza'}</span></div>
+      <b>${a.completed}/${a.target}</b>
+    </div>
+    <div class="participants">${participantMarkup(a.participants)}</div>
+  </div>`).join('');
+  const active=p.status==='active';
+  return `<article class="post-card my-campaign-card">
+    <div class="post-top">
+      <div><strong>${escapeHtml(p.title||'Publicación')}</strong><div class="muted">${escapeHtml(p.platform)} · <span class="campaign-status ${escapeHtml(p.status)}">${statusLabel(p.status)}</span></div></div>
+      <div class="timer">${active?timeLeft(p.expires_at):statusLabel(p.status)}</div>
+    </div>
+    <a class="post-link" href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer">Abrir publicación ↗</a>
+    <div class="cost"><span>Usados / reservados</span><strong>${p.spent} / ${p.budget} PT</strong></div>
+    <div class="progress"><span style="width:${Math.min(100,Number(p.budget)?Number(p.spent)/Number(p.budget)*100:0)}%"></span></div>
+    <div class="campaign-actions-detail">${actions}</div>
+    ${active?`<div class="campaign-tools"><button class="cancel-campaign" data-cancel-post="${p.id}">Cancelar campaña</button><small>Devuelve automáticamente los puntos que todavía no se usaron.</small></div>`:''}
   </article>`;
 }
 
 async function refreshMyPosts(){
   const {posts}=await api('/api/my-posts');
-  $('#myPosts').innerHTML=posts.length?posts.map(p=>`<article class="post-card"><div class="post-top"><div><strong>${escapeHtml(p.title||'Publicación')}</strong><div class="muted">${escapeHtml(p.platform)} · ${escapeHtml(p.status)}</div></div><div class="timer">${timeLeft(p.expires_at)}</div></div><div class="cost"><span>Usados / reservados</span><strong>${p.spent} / ${p.budget} PT</strong></div><div class="progress"><span style="width:${Math.min(100,Number(p.budget)?Number(p.spent)/Number(p.budget)*100:0)}%"></span></div></article>`).join(''):'<div class="empty">Todavía no publicaste campañas.</div>';
+  $('#myPosts').innerHTML=posts.length?posts.map(renderMyPost).join(''):'<div class="empty">Todavía no publicaste campañas.</div>';
 }
 
 async function enterApp(){
   try{
-    setAuth(true); await refreshMe(); await Promise.all([refreshFeed(),refreshMyPosts(),refreshCommunity()]);
+    setAuth(true);
+    await refreshMe();
+    await Promise.all([refreshFeed(),refreshMyPosts(),refreshCommunity()]);
   }catch(e){
-    token=''; localStorage.removeItem('rr_token'); setAuth(false);
+    token='';
+    localStorage.removeItem('rr_token');
+    setAuth(false);
   }
 }
 
@@ -177,13 +254,27 @@ $$('[data-auth-tab]').forEach(btn=>btn.addEventListener('click',()=>{
 }));
 
 $('#loginForm').addEventListener('submit',async e=>{
-  e.preventDefault(); const f=new FormData(e.currentTarget);
-  try{const data=await api('/api/login',{method:'POST',body:Object.fromEntries(f)}); token=data.token;localStorage.setItem('rr_token',token);toast('Sesión iniciada');await enterApp()}catch(err){toast(err.message)}
+  e.preventDefault();
+  const f=new FormData(e.currentTarget);
+  try{
+    const data=await api('/api/login',{method:'POST',body:Object.fromEntries(f)});
+    token=data.token;
+    localStorage.setItem('rr_token',token);
+    toast('Sesión iniciada');
+    await enterApp();
+  }catch(err){toast(err.message)}
 });
 
 $('#registerForm').addEventListener('submit',async e=>{
-  e.preventDefault(); const f=new FormData(e.currentTarget);
-  try{const data=await api('/api/register',{method:'POST',body:Object.fromEntries(f)});token=data.token;localStorage.setItem('rr_token',token);toast('Cuenta creada · +50 PT');await enterApp()}catch(err){toast(err.message)}
+  e.preventDefault();
+  const f=new FormData(e.currentTarget);
+  try{
+    const data=await api('/api/register',{method:'POST',body:Object.fromEntries(f)});
+    token=data.token;
+    localStorage.setItem('rr_token',token);
+    toast('Cuenta creada · +50 PT');
+    await enterApp();
+  }catch(err){toast(err.message)}
 });
 
 function showView(name){
@@ -197,7 +288,8 @@ function showView(name){
 $$('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 
 function updateCost(){
-  const prices={like:1,comment:2,repost:3,mention:3}; let total=0;
+  const prices={like:1,comment:2,repost:3,mention:3};
+  let total=0;
   $$('#publishForm input[name="action"]:checked').forEach(ch=>{
     total+=prices[ch.value]*Number($(`#publishForm input[name="${ch.value}_target"]`).value||1);
   });
@@ -228,27 +320,59 @@ $('#publishForm').addEventListener('submit',async e=>{
     toast(`Campaña publicada · ${data.cost} PT reservados`);
     form.reset();
     $$('input[type="number"]',form).forEach(i=>i.value=4);
-    updateCost(); updatePostPreview('');
+    updateCost();
+    updatePostPreview('');
     await Promise.all([refreshMe(),refreshFeed(),refreshMyPosts(),refreshCommunity()]);
     showView('feed');
   }catch(err){toast(err.message)}
 });
 
 $('#feed').addEventListener('click',async e=>{
-  const btn=e.target.closest('[data-action-id]'); if(!btn||btn.disabled)return;
-  window.open(btn.dataset.url,'_blank','noopener,noreferrer');
-  if(btn.dataset.auto==='true'){
-    toast('Abrí la publicación. Esta acción se acreditará cuando Instagram la verifique.');return;
+  const start=e.target.closest('[data-start-action]');
+  if(start && !start.disabled){
+    const url=start.dataset.url;
+    window.open(url,'_blank','noopener,noreferrer');
+    try{
+      const data=await api(`/api/actions/${start.dataset.startAction}/start`,{method:'POST'});
+      if(data.verification==='automatic') toast('Acción iniciada · quedará pendiente hasta que Instagram la verifique');
+      else toast('Acción iniciada · hacela en Instagram y después tocá “YA LO HICE”');
+      await refreshFeed();
+    }catch(err){toast(err.message)}
+    return;
   }
-  const ok=confirm('Se abrió la publicación. Marcá Aceptar solo después de completar realmente la acción.');
+
+  const complete=e.target.closest('[data-complete-action]');
+  if(complete && !complete.disabled){
+    const ok=confirm('Confirmá únicamente si ya realizaste la acción en Instagram.');
+    if(!ok)return;
+    try{
+      const d=await api(`/api/actions/${complete.dataset.completeAction}/complete`,{method:'POST'});
+      toast(`Acción registrada · +${d.reward} PT`);
+      await Promise.all([refreshMe(),refreshFeed(),refreshCommunity()]);
+    }catch(err){toast(err.message)}
+  }
+});
+
+$('#myPosts').addEventListener('click',async e=>{
+  const btn=e.target.closest('[data-cancel-post]');
+  if(!btn)return;
+  const ok=confirm('¿Cancelar esta campaña? Se devolverán solamente los puntos que todavía no fueron utilizados.');
   if(!ok)return;
-  try{const d=await api(`/api/actions/${btn.dataset.actionId}/complete`,{method:'POST'});toast(`Acción registrada · +${d.reward} PT`);await Promise.all([refreshMe(),refreshFeed(),refreshCommunity()])}catch(err){toast(err.message)}
+  try{
+    const data=await api(`/api/posts/${btn.dataset.cancelPost}/cancel`,{method:'POST'});
+    toast(`Campaña cancelada · +${data.refund} PT devueltos`);
+    await Promise.all([refreshMe(),refreshFeed(),refreshMyPosts(),refreshCommunity()]);
+  }catch(err){toast(err.message)}
 });
 
 $('#refreshBtn').addEventListener('click',()=>Promise.all([refreshMe(),refreshFeed(),refreshCommunity()]).catch(e=>toast(e.message)));
 $('#logoutBtn').addEventListener('click',async()=>{
   try{await api('/api/logout',{method:'POST'})}catch{}
-  token='';me=null;localStorage.removeItem('rr_token');setAuth(false);toast('Sesión cerrada');
+  token='';
+  me=null;
+  localStorage.removeItem('rr_token');
+  setAuth(false);
+  toast('Sesión cerrada');
 });
 
 updateCost();
